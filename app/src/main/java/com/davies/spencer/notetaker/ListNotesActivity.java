@@ -1,12 +1,16 @@
 package com.davies.spencer.notetaker;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,11 +18,25 @@ import java.util.List;
 public class ListNotesActivity extends AppCompatActivity {
 
     private List<Note> notes = new ArrayList<>();
+    private ListView notesListView;
+    private int editingNoteId = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_notes);
+
+        notesListView = (ListView) findViewById(R.id.notesListView);
+
+        notesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int itemNumber, long id) {
+                Intent editNoteIntent = new Intent(view.getContext(), EditNoteActivity.class);
+                editNoteIntent.putExtra("Note", notes.get(itemNumber));
+                editingNoteId = itemNumber;
+                startActivityForResult(editNoteIntent, 1);
+            }
+        });
 
         notes.add(new Note("First note", "Hi", new Date()));
         notes.add(new Note("Second note", "Hi", new Date()));
@@ -37,15 +55,36 @@ public class ListNotesActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        notes.add(new Note("Added note", "Hi", new Date()));
-
-        populateList();
+        Intent editNoteIntent = new Intent(this, EditNoteActivity.class);
+        startActivityForResult(editNoteIntent, 1);
 
         return true;
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(resultCode == RESULT_CANCELED) {
+            return;
+        }
+
+
+        Serializable extra = data.getSerializableExtra("Note");
+        if (extra != null)
+        {
+            Note newNote = (Note) extra;
+            if(editingNoteId > -1)
+            {
+                notes.set(editingNoteId, newNote);
+                editingNoteId = -1;
+            }
+            else {
+                notes.add(newNote);
+            }
+            populateList();
+        }
+    }
+
     private void populateList() {
-        ListView notesListView = (ListView) findViewById(R.id.notesListView);
 
         List<String> values = new ArrayList<String>();
         for (Note note : notes)
